@@ -1,0 +1,82 @@
+##Variable Change Reports for Individual tickers;
+##Reading in of the large file;
+
+myfile = "C:/Users/billt/Downloads/BizQualify_v6_4_input_historical_monthly_open_all_fields_oct_2011_to_oct_2018.csv"
+myfile_x = fread(myfile)
+
+##Creating each subset;
+
+subset_x = subset(myfile_x, bq_ticker=="F")
+subset_y = subset(myfile_y, bq_ticker=="TGT")
+subset_z = subset(myfile_z, bq_ticker=="WMT")
+
+##Changing the date string to a date;
+
+subset_x$bq_data_run_date = as.Date(subset_x$bq_data_run_date, format="%Y-%m-%d")
+subset_y$bq_data_run_date = as.Date(subset_y$bq_data_run_date, format="%Y-%m-%d")
+subset_z$bq_data_run_date = as.Date(subset_z$bq_data_run_date, format="%Y-%m-%d")
+
+##Checking that its formatted correctly now;
+##Format should now be 'double';
+
+typeof(subset_x$bq_data_run_date)
+typeof(subset_y$bq_data_run_date)
+typeof(subset_z$bq_data_run_date)
+
+##Keeping only necessary fields;
+##Need to code - I did this manually;
+##Fields kept - bq_ticker, bq_data_run_date bq_company_legal_name bq_current_employees_plan;
+
+##Sorting by Date, Increasing order;
+subset_x=subset_x[order(subset_x$bq_data_run_date,decreasing=F),]
+subset_y=subset_y[order(subset_y$bq_data_run_date,decreasing=F),]
+subset_z=subset_z[order(subset_z$bq_data_run_date,decreasing=F),]
+
+##Creating a lagged variable;
+##The package for Lag is Hmisc;
+subset_x$lagCEP=Lag(subset_x$bq_current_employees_plan,+1)
+subset_y$lagCEP=Lag(subset_x$bq_current_employees_plan,+1)
+subset_z$lagCEP=Lag(subset_x$bq_current_employees_plan,+1)
+
+##Creating a change id;
+subset_x$changeid=0
+subset_x$changeid[subset_x$bq_current_employees_plan!=subset_x$lagCEP & subset_x$nid!=1]=1
+
+Subset_y$changeid=0
+subset_y$changeid[subset_y$bq_current_employees_plan!=subset_y$lagCEP & subset_y$nid!=1]=1
+
+Subset_z$changeid=0
+subset_z$changeid[subset_z$bq_current_employees_plan!=subset_z$lagCEP & subset_z$nid!=1]=1
+
+##Time Series Plot, blue line with red dots;
+
+##Ford;
+ggford=ggplot(data=subset_x,aes(x=bq_data_run_date, y=bq_current_employees_plan))+
++     geom_line(color = "#00AFBB", size = 2)
+
+ggford+geom_point(color="red") +
+ggtitle("Ford Current Employees in a Welfare/Retirement Plan")
+
+##Target;
+ggtarget=ggplot(data=subset_y,aes(x=bq_data_run_date, y=bq_current_employees_plan))+
++     geom_line(color = "#00AFBB", size = 2)
+
+ggtarget+geom_point(color="red") +
+ggtitle("Target Current Employees in a Welfare/Retirement Plan")
+
+##Walmart;
+ggwalmart=ggplot(data=subset_z,aes(x=bq_data_run_date, y=bq_current_employees_plan))+
++     geom_line(color = "#00AFBB", size = 2)
+
+ggwalmart+geom_point(color="red") +
+ggtitle("Walmart Current Employees in a Welfare/Retirement Plan")
+
+##Adding a year variable for a summary report;
+subset_x$bqrd_yr=year(subset_x$bq_data_run_date)
+subset_y$bqrd_yr=year(subset_y$bq_data_run_date)
+subset_z$bqrd_yr=year(subset_z$bq_data_run_date)
+
+##Changes by year summary reports;
+cr_ford=with(subset_x,tapply(X=subset_x$changeid,INDEX=subset_x$bqrd_yr,FUN=sum))
+cr_target=with(subset_y,tapply(X=subset_y$changeid,INDEX=subset_y$bqrd_yr,FUN=sum))
+cr_walmart=with(subset_z,tapply(X=subset_z$changeid,INDEX=subset_z$bqrd_yr,FUN=sum))
