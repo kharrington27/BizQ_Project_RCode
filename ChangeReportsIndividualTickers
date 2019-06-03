@@ -7,8 +7,8 @@ myfile_x = fread(myfile)
 ##Creating each subset;
 
 subset_x = subset(myfile_x, bq_ticker=="F")
-subset_y = subset(myfile_y, bq_ticker=="TGT")
-subset_z = subset(myfile_z, bq_ticker=="WMT")
+subset_y = subset(myfile_x, bq_ticker=="TGT")
+subset_z = subset(myfile_x, bq_ticker=="WMT")
 
 ##Changing the date string to a date;
 
