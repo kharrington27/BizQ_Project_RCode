@@ -4,6 +4,10 @@
 myfile = "C:/Users/billt/Downloads/BizQualify_v6_4_input_historical_monthly_open_all_fields_oct_2011_to_oct_2018.csv"
 myfile_x = fread(myfile)
 
+##Keeping only necessary fields for this exercise;
+keeps=c("bq_ticker","bq_data_run_date","bq_company_legal_name","bq_current_employees_plan")
+myfile_xx=myfile_x[keeps]
+
 ##Creating each subset;
 
 subset_x = subset(myfile_x, bq_ticker=="F")
@@ -22,10 +26,6 @@ subset_z$bq_data_run_date = as.Date(subset_z$bq_data_run_date, format="%Y-%m-%d"
 typeof(subset_x$bq_data_run_date)
 typeof(subset_y$bq_data_run_date)
 typeof(subset_z$bq_data_run_date)
-
-##Keeping only necessary fields;
-##Need to code - I did this manually;
-##Fields kept - bq_ticker, bq_data_run_date bq_company_legal_name bq_current_employees_plan;
 
 ##Sorting by Date, Increasing order;
 subset_x=subset_x[order(subset_x$bq_data_run_date,decreasing=F),]
