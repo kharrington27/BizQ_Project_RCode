@@ -1,0 +1,78 @@
+##Variable Change Reports for Multiple tickers, Mutliple Change Variables;
+
+##Reading in of the large file;
+myfile = "C:/Users/billt/Downloads/BizQualify_v6_4_input_historical_monthly_open_all_fields_oct_2011_to_oct_2018.csv"
+myfile_x = fread(myfile)
+
+##Keeping only necessary fields for this exercise;
+myfile_xx=subset(myfile_x,select=c("bq_ticker","bq_data_run_date","bq_company_legal_name","bq_current_employees_plan","bq_credit_score","bq_growth_score","bq_risk_score","bq_savings_score","bq_tot_contrib_pens_amt_a","bq_comp_most_recent_filing_date"))
+
+##Sorting the file by Ticker and Date;
+myfile_xx=myfile_xx[order(myfile_xx$bq_ticker,myfile_xx$bq_data_run_date),]
+
+##Removing records with only 1 record count (the lag I do does not support records of this type);
+myfile_xx$rec_count=1
+
+##Creating a SUM of record count by BQ_ticker, Retaining all Records;
+myfile_xx=sqldf("SELECT a.*,b.sum_recs from myfile_xx a LEFT OUTER JOIN (SELECT myfile_xx.bq_ticker,SUM(myfile_xx.rec_count) as sum_recs from myfile_xx GROUP by myfile_xx.bq_ticker)b on a.bq_ticker=b.bq_ticker")
+
+##Removing records with sum_recs >1 - Before Lagging;
+myfile_xx_gt1=subset(myfile_xx, sum_recs>1)
+
+##Lagging by groups;
+
+#Creating the lg function;
+lg=function(x)c(NA,x[1:(length(x)-1)])
+
+#Creating a data.table;
+mfyt <- data.table(myfile_xx_gt1)
+
+#Running the lags;
+mfyt[,lag_cep := lg(bq_current_employees_plan), by = c("bq_ticker")]
+mfyt[,lag_cscore := lg(bq_credit_score), by = c("bq_ticker")]
+mfyt[,lag_gscore := lg(bq_growth_score), by = c("bq_ticker")]
+mfyt[,lag_rscore := lg(bq_risk_score), by = c("bq_ticker")]
+mfyt[,lag_sscore := lg(bq_savings_score), by = c("bq_ticker")]
+mfyt[,lag_tcpaa := lg(bq_tot_contrib_pens_amt_a), by = c("bq_ticker")]
+mfyt[,lag_cmrfd := lg(bq_comp_most_recent_filing_date), by = c("bq_ticker")]
+
+#Creating the change variables;
+mfyt$change_cep=0
+mfyt$change_cscore=0
+mfyt$change_gscore=0
+mfyt$change_rscore=0
+mfyt$change_sscore=0
+mfyt$change_tcpaa=0
+mfyt$change_cmrfd=0
+
+mfyt$change_cep[mfyt$bq_current_employees_plan!=mfyt$lag_cep & mfyt$lag_cep != "NA"]=1
+mfyt$change_cscore[mfyt$bq_credit_score!=mfyt$lag_cscore & mfyt$lag_cscore != "NA"]=1
+mfyt$change_gscore[mfyt$bq_growth_score!=mfyt$lag_gscore & mfyt$lag_gscore != "NA"]=1
+mfyt$change_rscore[mfyt$bq_risk_score!=mfyt$lag_rscore & mfyt$lag_rscore != "NA"]=1
+mfyt$change_sscore[mfyt$bq_savings_score!=mfyt$lag_sscore & mfyt$lag_sscore != "NA"]=1
+mfyt$change_tcpaa[mfyt$bq_tot_contrib_pens_amt_a!=mfyt$lag_tcpaa & mfyt$lag_tcpaa != "NA"]=1
+mfyt$change_cmrfd[mfyt$bq_comp_most_recent_filing_date!=mfyt$lag_cmrfd & mfyt$lag_cmrfd != "NA"]=1
+
+##Creating the sum of the change variable;
+#Note:  Press Enter at the end of each line and a '+' will appear at the beginning of each line;
+
+myfile_yy=sqldf("SELECT a.*,b.sum_change_cep,b.sum_change_cscore,b.sum_change_gscore,b.sum_change_rscore,b.sum_change_sscore,b.sum_change_tcpaa,b.sum_change_cmrfd FROM mfyt a
+LEFT OUTER JOIN (SELECT mfyt.bq_ticker,
+SUM(mfyt.change_cep) as sum_change_cep,
+SUM(mfyt.change_cscore) as sum_change_cscore,
+SUM(mfyt.change_gscore) as sum_change_gscore,
+SUM(mfyt.change_rscore) as sum_change_rscore,
+SUM(mfyt.change_sscore) as sum_change_sscore,
+SUM(mfyt.change_tcpaa) as sum_change_tcpaa,
+SUM(mfyt.change_cmrfd) as sum_change_cmrfd
+from mfyt GROUP by mfyt.bq_ticker)b on a.bq_ticker=b.bq_ticker")
+
+##Creating an aggregation dataframe as a report that can be exported;
+change_report=sqldf("SELECT a.bq_ticker, a.bq_company_legal_name as legal_company_name, a.sum_recs as months_reported, a.sum_change_cep as no_of_cep_changes,a.sum_change_cscore as no_of_cscore_changes,
+a.sum_change_tcpaa as no_of_tcpaa_changes, a.sum_change_cmrfd as no_of_cmrfd_changes FROM myfile_yy a GROUP BY a.bq_ticker")
+
+##Adding an indicator for a ticker with a complete set of months;
+change_report$complete_months=ifelse(change_report$months_reported==85,1,0)
+
+##Exporting the report to Excel - Using the openxlsx package;
+write.xlsx(change_report, 'change_report_multiple_variables.xlsx') 
