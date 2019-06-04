@@ -1,4 +1,4 @@
-##Variable Change Reports for Individual tickers;
+##Variable Change Reports for Individual tickers - One Variable;
 ##Reading in of the large file;
 
 myfile = "C:/Users/billt/Downloads/BizQualify_v6_4_input_historical_monthly_open_all_fields_oct_2011_to_oct_2018.csv"
