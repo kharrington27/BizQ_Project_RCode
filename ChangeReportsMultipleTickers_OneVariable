@@ -1,0 +1,44 @@
+##Variable Change Reports for Multiple tickers, One Change Variable;
+
+##Reading in of the large file;
+myfile = "C:/Users/billt/Downloads/BizQualify_v6_4_input_historical_monthly_open_all_fields_oct_2011_to_oct_2018.csv"
+myfile_x = fread(myfile)
+
+##Keeping only necessary fields for this exercise;
+keeps=c("bq_ticker","bq_data_run_date","bq_company_legal_name","bq_current_employees_plan")
+myfile_xx=myfile_x[keeps]
+
+##Sorting the file by Ticker and Date;
+myfile_xx=myfile_xx[order(myfile_xx$bq_ticker,myfile_xx$bq_data_run_date),]
+
+##Removing records with only 1 record count (the lag I do does not support records of this type);
+myfile_xx$rec_count=1
+
+##Creating a SUM of record count by BQ_ticker, Retaining all Records;
+myfile_xx=sqldf("SELECT a.*,b.sum_recs from myfile_xx a LEFT OUTER JOIN (SELECT myfile_xx.bq_ticker,SUM(myfile_xx.rec_count) as sum_recs from myfile_xx GROUP by myfile_xx.bq_ticker)b on a.bq_ticker=b.bq_ticker")
+
+##Removing records with sum_recs >1 - Before Lagging;
+myfile_xx_gt1=subset(myfile_xx, sum_recs>1)
+
+##Lagging by groups;
+
+#Creating the lg function;
+lg=function(x)c(NA,x[1:(length(x)-1)])
+
+#Creating a data.table;
+mfyt <- data.table(myfile_xx_gt1)
+
+#Running the lag;
+mfyt[,lag_cep := lg(bq_current_employees_plan), by = c("bq_ticker")]
+
+#Creating the change variable;
+mfyt$changeid=0
+
+mfyt$changeid[mfyt$bq_current_employees_plan!=mfyt$lag_cep & mfyt$lag_cep != "NA"]=1
+
+#Creating the sum of the change variable;
+myfile_yy=sqldf("SELECT a.*,b.sum_changeid from mfyt a LEFT OUTER JOIN (SELECT mfyt.bq_ticker,SUM(mfyt.changeid) as sum_changeid from mfyt GROUP by mfyt.bq_ticker)b on a.bq_ticker=b.bq_ticker")
+
+#Creating an aggregation dataframe as a report that can be exported;
+change_report=sqldf("SELECT a.bq_ticker, a.sum_recs as months_reported, a.sum_changeid as no_of_cep_changes FROM myfile_yy a GROUP BY a.bq_ticker")
+  
