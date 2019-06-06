@@ -1,0 +1,23 @@
+##Reading in the original set we gave to Datarista to create the driver;
+myfile="H:/Data Dumps/BizQualify_private and public company sample with all fields_Dec 2018.csv"
+myfile_dr=fread(myfile)
+
+##Creating and sorting the driver;
+dr_driver=subset(myfile_dr,select=c("company_ein"))
+dr_driver=dr_driver[order(company_ein),]
+
+##Reading in the source file - July 2018 file - saved as an R file the day before;
+
+load("data_20180702_ts.Rdata")
+
+##Creating a prematch set, sorting by company_ein;
+prematch=subset(myfile_x, bq_year==2018, select=c(bq_company_legal_name, bq_company_contact_name, bq_ticker,company_ein,bq_website,bq_age_oldest_plan,bq_industry_name,bq_business_code,bq_industry_sub_sector,bq_industry_sub_sector_code,bq_industry_sector,bq_naics_code,bq_naics_description,bq_naics_sector_code,bq_sic_code,bq_sic_description,bq_sic_sector_code,bq_company_address1_line_1,bq_company_address1_line_2,bq_company_address1_city,bq_company_address1_state,bq_company_address1_zip5,bq_comp_fgn_address1_cntry,bq_company_phone,bq_current_employees_plan,bq_public_indicator,bq_small_company_ind,bq_growth_score,bq_profitability_score,bq_risk_score,bq_revenue,bq_ebitda,bq_cogs,bq_net_income,bq_gross_profit,bq_total_assets,bq_year,bq_yrn))
+
+prematch=prematch[order(company_ein),]
+
+##Performing an inner merge to retrieve records only of the 300 companies (if available on this file);
+matchfile=merge(dr_driver, prematch, by ="company_ein")
+
+##Saving the matchfile as an excel file to share;
+library(openxlsx)
+> write.xlsx(matchfile, 'datarista_proxy_sample_20180702_ts_attempt.xlsx')
