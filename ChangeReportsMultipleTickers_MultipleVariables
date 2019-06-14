@@ -69,7 +69,7 @@ from mfyt GROUP by mfyt.bq_ticker)b on a.bq_ticker=b.bq_ticker")
 
 ##Creating an aggregation dataframe as a report that can be exported;
 change_report=sqldf("SELECT a.bq_ticker, a.bq_company_legal_name as legal_company_name, a.sum_recs as months_reported, a.sum_change_cep as no_of_cep_changes,a.sum_change_cscore as no_of_cscore_changes,
-a.sum_change_tcpaa as no_of_tcpaa_changes, a.sum_change_cmrfd as no_of_cmrfd_changes FROM myfile_yy a GROUP BY a.bq_ticker")
+,a.sum_change_gscore as no_of_gscore_changes, a.sum_change_rscore as no_of_rscore_changes,a.sum_change_sscore as no_of_sscore_changes,a.sum_change_tcpaa as no_of_tcpaa_changes, a.sum_change_cmrfd as no_of_cmrfd_changes FROM myfile_yy a GROUP BY a.bq_ticker")
 
 ##Adding an indicator for a ticker with a complete set of months;
 change_report$complete_months=ifelse(change_report$months_reported==85,1,0)
